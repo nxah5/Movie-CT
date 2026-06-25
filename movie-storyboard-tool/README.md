@@ -22,7 +22,7 @@
 
 ## Docker 배포
 
-Docker 기반 배포 서비스에서는 저장소 루트에 `Dockerfile`이 있어야 합니다. 이 폴더 안의 파일들을 저장소 루트에 업로드하면 아래 Dockerfile이 자동으로 사용됩니다.
+Docker 기반 배포 서비스에서는 저장소 루트에 `Dockerfile`이 있어야 합니다. 이 폴더 안의 파일들을 저장소 루트에 업로드하면 아래 Dockerfile이 자동으로 사용됩니다. Docker 배포에는 `index.html`과 `Dockerfile`만 있어도 실행됩니다.
 
 ```bash
 docker build -t movie-storyboard-tool .
