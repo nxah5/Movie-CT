@@ -20,10 +20,21 @@
 4. 브랜치는 `main`, 폴더는 `/root`를 선택합니다.
 5. 저장 후 생성되는 GitHub Pages 주소로 접속합니다.
 
+## Docker 배포
+
+Docker 기반 배포 서비스에서는 저장소 루트에 `Dockerfile`이 있어야 합니다. 이 폴더 안의 파일들을 저장소 루트에 업로드하면 아래 Dockerfile이 자동으로 사용됩니다.
+
+```bash
+docker build -t movie-storyboard-tool .
+docker run -p 8080:80 movie-storyboard-tool
+```
+
 ## 파일 구성
 
 - `index.html`: 실제 콘티 제작 툴
 - `.nojekyll`: GitHub Pages 정적 배포용 설정 파일
+- `Dockerfile`: Docker/nginx 정적 사이트 배포용 설정
+- `.dockerignore`: Docker 빌드 제외 파일 설정
 
 ## 참고
 
