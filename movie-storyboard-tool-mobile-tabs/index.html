@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>영화 콘티 제작 툴</title>
+  <style>
+    :root {
+      --ink: #171717;
+      --muted: #6b7280;
+      --line: #242424;
+      --panel: #f6f7f9;
+      --panel-strong: #e9edf2;
+      --accent: #136f63;
+      --accent-strong: #0b5048;
+      --paper: #ffffff;
+      --field: #ffffff;
+      --focus: rgba(19, 111, 99, .24);
+      --shadow: 0 20px 50px rgba(20, 24, 31, .16);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #dfe4ea;
+      min-height: 100vh;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .mobile-fixed-toolbar {
+      display: none;
+    }
+
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 22px;
+      background: var(--panel);
+      border-right: 1px solid #c9d1dc;
+      overflow: auto;
+      max-height: 100vh;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      margin: 7px 0 0;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      width: 100%;
+      background: var(--panel-strong);
+      border: 1px solid #c7ced8;
+      padding: 4px;
+      border-radius: 8px;
+      gap: 4px;
+    }
+
+    .segmented button {
+      min-height: 38px;
+      border-radius: 6px;
+      color: #334155;
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .segmented button[aria-pressed="true"] {
+      color: #fff;
+      background: var(--accent);
+      box-shadow: 0 2px 8px rgba(19, 111, 99, .22);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .action-button {
+      min-height: 42px;
+      border-radius: 8px;
+      padding: 0 10px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+      background: var(--accent-strong);
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .action-button.secondary {
+      color: #243041;
+      background: #dce3eb;
+    }
+
+    .page-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid #c7ced8;
+      border-radius: 8px;
+      background: rgba(246, 247, 249, .96);
+      box-shadow: 0 10px 24px rgba(20, 24, 31, .12);
+      backdrop-filter: blur(10px);
+    }
+
+    .page-toolbar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .page-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .page-button {
+      min-height: 40px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      color: #fff;
+      background: var(--accent);
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .page-button.danger {
+      background: #a03a3a;
+    }
+
+    .page-button:disabled {
+      cursor: default;
+      opacity: .42;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 2px;
+    }
+
+    .section-title h2 {
+      font-size: 15px;
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    .count-pill {
+      color: #475569;
+      font-size: 12px;
+      font-weight: 800;
+      background: #e1e7ef;
+      border-radius: 999px;
+      padding: 5px 9px;
+    }
+
+    .input-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .page-tag {
+      min-width: 38px;
+      min-height: 24px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      color: #0b5048;
+      background: #d9ece8;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .cut-editor {
+      background: #fff;
+      border: 1px solid #d3dae3;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .cut-editor[hidden] {
+      display: none;
+    }
+
+    .cut-editor-header {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #eef2f6;
+      border-bottom: 1px solid #d3dae3;
+    }
+
+    .cut-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 900;
+      color: #1f2937;
+    }
+
+    .cut-number {
+      width: 52px;
+      height: 32px;
+      border: 1px solid #bdc7d3;
+      border-radius: 6px;
+      padding: 4px 7px;
+      background: var(--field);
+      text-align: center;
+      font-weight: 900;
+    }
+
+    .cut-fields {
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      color: #334155;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .field input[type="file"] {
+      width: 100%;
+      color: #334155;
+      font-size: 12px;
+    }
+
+    .field textarea {
+      width: 100%;
+      min-height: 66px;
+      resize: vertical;
+      border: 1px solid #bdc7d3;
+      border-radius: 7px;
+      padding: 9px 10px;
+      background: var(--field);
+      line-height: 1.4;
+      color: var(--ink);
+    }
+
+    .field textarea:focus,
+    .cut-number:focus {
+      outline: 3px solid var(--focus);
+      border-color: var(--accent);
+    }
+
+    .image-control-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .small-button {
+      min-height: 32px;
+      border-radius: 7px;
+      padding: 0 10px;
+      background: #edf1f5;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid #cbd5e1;
+    }
+
+    .small-button:disabled {
+      cursor: default;
+      opacity: .45;
+    }
+
+    .preview-area {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-width: 0;
+      height: 100vh;
+      padding: 28px;
+      overflow: auto;
+      overscroll-behavior: contain;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.45) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,.45) 1px, transparent 1px),
+        #d9e0e8;
+      background-size: 24px 24px;
+    }
+
+    .sheet-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      width: max-content;
+      zoom: var(--preview-scale, 1);
+    }
+
+    .sheet {
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      padding: 8mm;
+      color: #111;
+      flex: 0 0 auto;
+      break-after: page;
+      page-break-after: always;
+    }
+
+    .sheet:last-child {
+      break-after: auto;
+      page-break-after: auto;
+    }
+
+    .sheet.portrait {
+      width: 210mm;
+      height: 297mm;
+      page: storyPortrait;
+    }
+
+    .sheet.landscape {
+      width: 297mm;
+      height: 210mm;
+      page: storyLandscape;
+    }
+
+    .storyboard-table {
+      width: 100%;
+      height: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      border: 1.4pt solid var(--line);
+    }
+
+    .storyboard-table th,
+    .storyboard-table td {
+      border: 1pt solid var(--line);
+      vertical-align: top;
+      overflow: hidden;
+    }
+
+    .storyboard-table thead th {
+      height: 10mm;
+      background: #f1f3f5;
+      text-align: center;
+      vertical-align: middle;
+      font-size: 10pt;
+      font-weight: 900;
+      letter-spacing: 0;
+      padding: 1.5mm;
+    }
+
+    .storyboard-table tbody tr {
+      height: calc((100% - 10mm) / var(--row-count));
+    }
+
+    .storyboard-table td {
+      padding: 2.2mm;
+      font-size: 8.7pt;
+      line-height: 1.32;
+    }
+
+    .sheet.landscape .storyboard-table td {
+      font-size: 8.4pt;
+      padding: 2mm;
+    }
+
+    .cut-cell {
+      text-align: center;
+      vertical-align: middle;
+      font-size: 18pt;
+      font-weight: 900;
+      padding: 0;
+    }
+
+    .storyboard-table td.cut-cell,
+    .storyboard-table td.textual-cell {
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .cut-cell .print-text {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+
+    .scene-cell {
+      padding: 2mm;
+      background: #fff;
+      vertical-align: middle;
+    }
+
+    .scene-box {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .scene-frame {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: #fbfbfb;
+    }
+
+    .scene-frame.empty::before {
+      content: "";
+      display: block;
+      width: calc(100% - 8mm);
+      height: calc(100% - 8mm);
+      border: .7pt dashed #a8b0bb;
+      background:
+        linear-gradient(135deg, transparent calc(50% - .4pt), #c8ced6 50%, transparent calc(50% + .4pt)),
+        linear-gradient(45deg, transparent calc(50% - .4pt), #c8ced6 50%, transparent calc(50% + .4pt));
+    }
+
+    .scene-frame img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .print-text {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: keep-all;
+    }
+
+    .textual-cell .print-text {
+      height: 100%;
+      max-height: 100%;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .portrait col.cut-col { width: 7%; }
+    .portrait col.scene-col { width: 39%; }
+    .portrait col.text-col { width: 25%; }
+    .portrait col.audio-col { width: 15%; }
+    .portrait col.etc-col { width: 14%; }
+
+    .landscape col.cut-col { width: 6%; }
+    .landscape col.scene-col { width: 31%; }
+    .landscape col.text-col { width: 36%; }
+    .landscape col.audio-col { width: 14%; }
+    .landscape col.etc-col { width: 13%; }
+
+    svg {
+      width: 17px;
+      height: 17px;
+      flex: 0 0 auto;
+    }
+
+    @page storyPortrait {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    @page storyLandscape {
+      size: A4 landscape;
+      margin: 0;
+    }
+
+    @media (max-width: 1100px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .control-panel {
+        max-height: none;
+        border-right: 0;
+        border-bottom: 1px solid #c9d1dc;
+      }
+
+      .preview-area {
+        justify-content: center;
+        height: auto;
+        max-height: none;
+      }
+
+      .sheet {
+        transform-origin: top center;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        background: var(--panel);
+      }
+
+      .app {
+        display: block;
+      }
+
+      .mobile-fixed-toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        background: rgba(246, 247, 249, .98);
+        border-bottom: 1px solid #c9d1dc;
+        backdrop-filter: blur(10px);
+      }
+
+      .mobile-view-tabs,
+      .mobile-page-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .mobile-view-tabs button,
+      .mobile-page-button {
+        min-height: 42px;
+        border-radius: 8px;
+        color: #334155;
+        background: #dce3eb;
+        font-size: 14px;
+        font-weight: 900;
+      }
+
+      .mobile-view-tabs button[aria-pressed="true"] {
+        color: #fff;
+        background: var(--accent);
+      }
+
+      .mobile-page-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        color: #fff;
+        background: var(--accent);
+      }
+
+      .mobile-page-button.danger {
+        background: #a03a3a;
+      }
+
+      .mobile-page-button:disabled {
+        cursor: default;
+        opacity: .42;
+      }
+
+      body[data-mobile-view="input"] .preview-area {
+        display: none;
+      }
+
+      body[data-mobile-view="output"] .control-panel {
+        display: none;
+      }
+
+      .control-panel .page-toolbar {
+        display: none;
+      }
+
+      .control-panel {
+        padding: 16px;
+        min-height: calc(100vh - 116px);
+      }
+
+      .actions {
+        grid-template-columns: 1fr;
+      }
+
+      .page-buttons {
+        grid-template-columns: 1fr;
+      }
+
+      .brand-row {
+        flex-direction: column;
+      }
+
+      .preview-area {
+        min-height: calc(100vh - 116px);
+        height: auto;
+        padding: 12px;
+        overflow: visible;
+      }
+
+      .sheet-stack {
+        gap: 16px;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .app {
+        display: block;
+        min-height: auto;
+      }
+
+      .control-panel {
+        display: none;
+      }
+
+      .preview-area {
+        display: block;
+        padding: 0;
+        overflow: visible;
+        background: #fff;
+      }
+
+      .sheet-stack {
+        display: block;
+        width: auto;
+        zoom: 1 !important;
+      }
+
+      .sheet {
+        box-shadow: none;
+        margin: 0;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body data-mobile-view="input">
+  <main class="app">
+    <nav class="mobile-fixed-toolbar" aria-label="모바일 작업 도구">
+      <div class="mobile-view-tabs" aria-label="모바일 보기 전환">
+        <button type="button" id="mobileInputBtn" aria-pressed="true">입력 시트</button>
+        <button type="button" id="mobileOutputBtn" aria-pressed="false">출력 시트</button>
+      </div>
+      <div class="page-toolbar-row">
+        <strong>페이지 관리</strong>
+        <span class="count-pill" id="mobileCountLabel">5컷 표시 중</span>
+      </div>
+      <div class="mobile-page-actions">
+        <button class="mobile-page-button" type="button" id="mobileAddPageBtn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" fill="currentColor"/></svg>
+          페이지 추가
+        </button>
+        <button class="mobile-page-button danger" type="button" id="mobileDeletePageBtn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11h14v2H5v-2Z" fill="currentColor"/></svg>
+          페이지 삭제
+        </button>
+      </div>
+    </nav>
+
+    <aside class="control-panel" aria-label="콘티 입력 영역">
+      <div class="brand-row">
+        <div>
+          <h1>영화 콘티 제작 툴</h1>
+          <p class="subtle">입력은 이 영역에서 하고, 오른쪽 A4 시트만 인쇄 또는 PDF로 저장됩니다.</p>
+        </div>
+      </div>
+
+      <div class="toolbar" aria-label="출력 설정">
+        <div class="segmented" role="group" aria-label="A4 방향">
+          <button type="button" id="portraitBtn" aria-pressed="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 2v14h10V5H7Z" fill="currentColor"/></svg>
+            A4 세로 · 5컷
+          </button>
+          <button type="button" id="landscapeBtn" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Zm2 0v10h14V7H5Z" fill="currentColor"/></svg>
+            A4 가로 · 3컷
+          </button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="action-button" type="button" id="printBtn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v5H7V3Zm10 11h2v5H5v-5h2v3h10v-3ZM5 9h14a3 3 0 0 1 3 3v4h-3v-2H5v2H2v-4a3 3 0 0 1 3-3Zm0 2a1 1 0 0 0-1 1v2h1v-2h14v2h1v-2a1 1 0 0 0-1-1H5Z" fill="currentColor"/></svg>
+          PDF/인쇄
+        </button>
+        <button class="action-button secondary" type="button" id="clearBtn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-2 6h10l-.7 12H7.7L7 9Zm2.1 2 .47 8h4.86l.47-8H9.1Z" fill="currentColor"/></svg>
+          전체 비우기
+        </button>
+      </div>
+
+      <div class="page-toolbar" aria-label="페이지 관리">
+        <div class="page-toolbar-row">
+          <strong>페이지 관리</strong>
+          <span class="count-pill" id="countLabel">5컷 표시 중</span>
+        </div>
+        <div class="page-buttons">
+          <button class="page-button" type="button" id="addPageBtn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" fill="currentColor"/></svg>
+            페이지 추가
+          </button>
+          <button class="page-button danger" type="button" id="deletePageBtn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11h14v2H5v-2Z" fill="currentColor"/></svg>
+            페이지 삭제
+          </button>
+        </div>
+      </div>
+
+      <div class="section-title">
+        <h2>컷별 입력</h2>
+      </div>
+
+      <section class="input-list" id="inputList" aria-label="컷별 데이터 입력"></section>
+    </aside>
+
+    <section class="preview-area" aria-label="A4 출력 미리보기">
+      <div class="sheet-stack" id="sheetStack"></div>
+    </section>
+  </main>
+
+  <script>
+    const layoutConfig = {
+      portrait: { label: 'A4 세로', rows: 5 },
+      landscape: { label: 'A4 가로', rows: 3 }
+    };
+
+    const state = {
+      layout: 'portrait',
+      cuts: createCuts(5)
+    };
+
+    const inputList = document.getElementById('inputList');
+    const previewArea = document.querySelector('.preview-area');
+    const sheetStack = document.getElementById('sheetStack');
+    const countLabel = document.getElementById('countLabel');
+    const portraitBtn = document.getElementById('portraitBtn');
+    const landscapeBtn = document.getElementById('landscapeBtn');
+    const deletePageBtn = document.getElementById('deletePageBtn');
+    const mobileInputBtn = document.getElementById('mobileInputBtn');
+    const mobileOutputBtn = document.getElementById('mobileOutputBtn');
+    const mobileCountLabel = document.getElementById('mobileCountLabel');
+    const mobileAddPageBtn = document.getElementById('mobileAddPageBtn');
+    const mobileDeletePageBtn = document.getElementById('mobileDeletePageBtn');
+
+    function createCut(index) {
+      return {
+        cut: String(index + 1),
+        image: '',
+        imageName: '',
+        text: '',
+        audio: '',
+        etc: ''
+      };
+    }
+
+    function createCuts(count, startIndex = 0) {
+      return Array.from({ length: count }, (_, index) => createCut(startIndex + index));
+    }
+
+    function blankCut() {
+      return {
+        cut: '',
+        image: '',
+        imageName: '',
+        text: '',
+        audio: '',
+        etc: ''
+      };
+    }
+
+    function iconImage() {
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5V5Zm2 2v7.17l2.6-2.6 3.15 3.15 1.8-1.8L17 15.36V7H7Zm0 10h10l-2.45-2.45-1.8 1.8-3.15-3.15L7 15.79V17Zm2.5-6.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" fill="currentColor"/></svg>';
+    }
+
+    function renderInputEditors() {
+      inputList.innerHTML = '';
+      const rowsPerPage = layoutConfig[state.layout].rows;
+      state.cuts.forEach((cut, index) => {
+        const pageNumber = Math.floor(index / rowsPerPage) + 1;
+        const editor = document.createElement('section');
+        editor.className = 'cut-editor';
+        editor.dataset.index = index;
+        editor.innerHTML = `
+          <div class="cut-editor-header">
+            <span class="cut-title"><span class="page-tag">P${pageNumber}</span> 컷 <input class="cut-number" aria-label="컷 번호 ${index + 1}" value="${escapeAttribute(cut.cut)}"></span>
+          </div>
+          <div class="cut-fields">
+            <div class="field">
+              <label>장면 이미지</label>
+              <div class="image-control-row">
+                <input type="file" class="image-input" accept="image/*" aria-label="컷 ${index + 1} 장면 이미지">
+                <button class="small-button remove-image" type="button"${cut.image ? '' : ' disabled'}>${iconImage()} 삭제</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>텍스트</label>
+              <textarea class="text-input" aria-label="컷 ${index + 1} 텍스트">${escapeHtml(cut.text)}</textarea>
+            </div>
+            <div class="field">
+              <label>오디오</label>
+              <textarea class="audio-input" aria-label="컷 ${index + 1} 오디오">${escapeHtml(cut.audio)}</textarea>
+            </div>
+            <div class="field">
+              <label>기타</label>
+              <textarea class="etc-input" aria-label="컷 ${index + 1} 기타">${escapeHtml(cut.etc)}</textarea>
+            </div>
+          </div>
+        `;
+        inputList.appendChild(editor);
+      });
+      bindInputEvents();
+    }
+
+    function bindInputEvents() {
+      inputList.querySelectorAll('.cut-editor').forEach((editor) => {
+        const index = Number(editor.dataset.index);
+        editor.querySelector('.cut-number').addEventListener('input', (event) => {
+          state.cuts[index].cut = event.target.value;
+          renderSheets();
+        });
+        editor.querySelector('.text-input').addEventListener('input', (event) => {
+          state.cuts[index].text = event.target.value;
+          renderSheets();
+        });
+        editor.querySelector('.audio-input').addEventListener('input', (event) => {
+          state.cuts[index].audio = event.target.value;
+          renderSheets();
+        });
+        editor.querySelector('.etc-input').addEventListener('input', (event) => {
+          state.cuts[index].etc = event.target.value;
+          renderSheets();
+        });
+        editor.querySelector('.image-input').addEventListener('change', (event) => {
+          const file = event.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.addEventListener('load', () => {
+            state.cuts[index].image = reader.result;
+            state.cuts[index].imageName = file.name;
+            editor.querySelector('.remove-image').disabled = false;
+            renderSheets();
+          });
+          reader.readAsDataURL(file);
+        });
+        editor.querySelector('.remove-image').addEventListener('click', () => {
+          state.cuts[index].image = '';
+          state.cuts[index].imageName = '';
+          editor.querySelector('.image-input').value = '';
+          editor.querySelector('.remove-image').disabled = true;
+          renderSheets();
+        });
+      });
+    }
+
+    function getPageCount() {
+      const rows = layoutConfig[state.layout].rows;
+      return Math.max(1, Math.ceil(state.cuts.length / rows));
+    }
+
+    function updateCountLabel() {
+      const label = `총 ${state.cuts.length}컷 · ${getPageCount()}페이지`;
+      const isSinglePage = getPageCount() <= 1;
+      countLabel.textContent = label;
+      mobileCountLabel.textContent = label;
+      deletePageBtn.disabled = isSinglePage;
+      mobileDeletePageBtn.disabled = isSinglePage;
+    }
+
+    function renderSheets() {
+      const { rows } = layoutConfig[state.layout];
+      sheetStack.style.setProperty('--preview-scale', '1');
+      sheetStack.innerHTML = '';
+      for (let pageIndex = 0; pageIndex < getPageCount(); pageIndex += 1) {
+        const sheet = document.createElement('article');
+        sheet.className = `sheet ${state.layout}`;
+        sheet.setAttribute('aria-label', `${pageIndex + 1}페이지`);
+        sheet.innerHTML = `
+          <table class="storyboard-table ${state.layout}" style="--row-count: ${rows};">
+            <colgroup>
+              <col class="cut-col">
+              <col class="scene-col">
+              <col class="text-col">
+              <col class="audio-col">
+              <col class="etc-col">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>컷</th>
+                <th>장면</th>
+                <th>텍스트</th>
+                <th>오디오</th>
+                <th>기타</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        `;
+
+        const body = sheet.querySelector('tbody');
+        for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
+          const cut = state.cuts[(pageIndex * rows) + rowIndex] || blankCut();
+          const row = document.createElement('tr');
+          const sceneContent = cut.image
+            ? `<img src="${cut.image}" alt="${escapeAttribute(cut.imageName || '장면 이미지')}">`
+            : '';
+          row.innerHTML = `
+            <td class="cut-cell"><div class="print-text">${escapeHtml(cut.cut)}</div></td>
+            <td class="scene-cell"><div class="scene-box"><div class="scene-frame${cut.image ? '' : ' empty'}">${sceneContent}</div></div></td>
+            <td class="textual-cell"><div class="print-text">${escapeHtml(cut.text)}</div></td>
+            <td class="textual-cell"><div class="print-text">${escapeHtml(cut.audio)}</div></td>
+            <td class="textual-cell"><div class="print-text">${escapeHtml(cut.etc)}</div></td>
+          `;
+          body.appendChild(row);
+        }
+        sheetStack.appendChild(sheet);
+      }
+      updateCountLabel();
+      fitTextCells();
+      updatePreviewScale();
+    }
+
+    function fitTextCells() {
+      const minimumSize = 7.2;
+      document.querySelectorAll('.textual-cell .print-text').forEach((node) => {
+        node.style.fontSize = '';
+        let size = parseFloat(getComputedStyle(node).fontSize);
+        let attempts = 0;
+        while (node.scrollHeight > node.clientHeight + 1 && size > minimumSize && attempts < 20) {
+          size -= 0.5;
+          node.style.fontSize = `${size}px`;
+          attempts += 1;
+        }
+      });
+    }
+
+    function updatePreviewScale() {
+      const firstSheet = sheetStack.querySelector('.sheet');
+      if (!firstSheet) {
+        sheetStack.style.setProperty('--preview-scale', '1');
+        return;
+      }
+      sheetStack.style.setProperty('--preview-scale', '1');
+      const previewWidth = previewArea.clientWidth;
+      if (previewWidth <= 0) return;
+      const availableWidth = previewWidth - (window.innerWidth <= 760 ? 24 : 56);
+      const naturalWidth = firstSheet.getBoundingClientRect().width;
+      const minimumScale = window.innerWidth <= 760 ? 0.24 : 0.42;
+      const scale = Math.min(1, Math.max(minimumScale, availableWidth / naturalWidth));
+      sheetStack.style.setProperty('--preview-scale', String(scale));
+    }
+
+    function setMobileView(view) {
+      document.body.dataset.mobileView = view;
+      mobileInputBtn.setAttribute('aria-pressed', String(view === 'input'));
+      mobileOutputBtn.setAttribute('aria-pressed', String(view === 'output'));
+      if (view === 'output') {
+        requestAnimationFrame(updatePreviewScale);
+      }
+    }
+
+    function setLayout(layout) {
+      state.layout = layout;
+      portraitBtn.setAttribute('aria-pressed', String(layout === 'portrait'));
+      landscapeBtn.setAttribute('aria-pressed', String(layout === 'landscape'));
+      renderInputEditors();
+      renderSheets();
+    }
+
+    function addPage() {
+      const rows = layoutConfig[state.layout].rows;
+      state.cuts.push(...createCuts(rows, state.cuts.length));
+      renderInputEditors();
+      renderSheets();
+    }
+
+    function deletePage() {
+      const rows = layoutConfig[state.layout].rows;
+      if (getPageCount() <= 1) return;
+      const cutsOnLastPage = state.cuts.length % rows || rows;
+      const confirmed = window.confirm(`마지막 페이지의 ${cutsOnLastPage}개 컷을 삭제할까요?`);
+      if (!confirmed) return;
+      state.cuts.splice(state.cuts.length - cutsOnLastPage, cutsOnLastPage);
+      renderInputEditors();
+      renderSheets();
+    }
+
+    function resetCuts() {
+      state.cuts = createCuts(layoutConfig[state.layout].rows);
+      renderInputEditors();
+      renderSheets();
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value).replaceAll('"', '&quot;');
+    }
+
+    portraitBtn.addEventListener('click', () => setLayout('portrait'));
+    landscapeBtn.addEventListener('click', () => setLayout('landscape'));
+    mobileInputBtn.addEventListener('click', () => setMobileView('input'));
+    mobileOutputBtn.addEventListener('click', () => setMobileView('output'));
+    document.getElementById('printBtn').addEventListener('click', () => window.print());
+    document.getElementById('addPageBtn').addEventListener('click', addPage);
+    mobileAddPageBtn.addEventListener('click', addPage);
+    deletePageBtn.addEventListener('click', deletePage);
+    mobileDeletePageBtn.addEventListener('click', deletePage);
+    window.addEventListener('resize', updatePreviewScale);
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      const confirmed = window.confirm('입력한 모든 내용을 비울까요?');
+      if (!confirmed) return;
+      resetCuts();
+    });
+
+    renderInputEditors();
+    renderSheets();
+  </script>
+</body>
+</html>
