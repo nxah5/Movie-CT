@@ -680,6 +680,10 @@
         display: none;
       }
 
+      .mobile-fixed-toolbar {
+        display: none !important;
+      }
+
       .preview-area {
         display: block;
         padding: 0;
@@ -754,6 +758,13 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-2 6h10l-.7 12H7.7L7 9Zm2.1 2 .47 8h4.86l.47-8H9.1Z" fill="currentColor"/></svg>
           전체 비우기
         </button>
+        <button class="action-button secondary" type="button" data-project-action="load">
+          파일 불러오기
+        </button>
+        <button class="action-button" type="button" data-project-action="save">
+          파일 저장
+        </button>
+        <input type="file" id="projectFileInput" accept="application/json,.json" hidden>
       </div>
 
       <div class="page-toolbar" aria-label="페이지 관리">
@@ -1057,6 +1068,77 @@
       renderSheets();
     }
 
+    function createProjectFile() {
+      return {
+        format: "movie-ct-storyboard",
+        version: 1,
+        savedAt: new Date().toISOString(),
+        layout: state.layout,
+        cuts: state.cuts
+      };
+    }
+
+    function asText(value) {
+      return typeof value === "string" ? value : "";
+    }
+
+    function validateProjectFile(project) {
+      if (
+        !project ||
+        project.format !== "movie-ct-storyboard" ||
+        project.version !== 1 ||
+        !layoutConfig[project.layout] ||
+        !Array.isArray(project.cuts) ||
+        project.cuts.length === 0
+      ) {
+        return null;
+      }
+
+      return {
+        layout: project.layout,
+        cuts: project.cuts.map((cut) => ({
+          cut: asText(cut?.cut),
+          image: asText(cut?.image),
+          imageName: asText(cut?.imageName),
+          text: asText(cut?.text),
+          audio: asText(cut?.audio),
+          etc: asText(cut?.etc)
+        }))
+      };
+    }
+
+    function saveProjectFile() {
+      const blob = new Blob([JSON.stringify(createProjectFile(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+      link.href = url;
+      link.download = "movie-ct-" + date + ".json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function loadProjectFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        try {
+          const project = validateProjectFile(JSON.parse(String(reader.result)));
+          if (!project) throw new Error("invalid-project-file");
+          const confirmed = window.confirm("현재 작업 내용이 불러온 콘티로 교체됩니다. 계속할까요?");
+          if (!confirmed) return;
+          state.layout = project.layout;
+          state.cuts = project.cuts;
+          setLayout(state.layout);
+        } catch (error) {
+          window.alert("불러올 수 없는 콘티 파일입니다. 이 툴에서 저장한 JSON 파일을 선택해 주세요.");
+        }
+      });
+      reader.readAsText(file, "UTF-8");
+    }
+
     function escapeHtml(value) {
       return String(value)
         .replaceAll('&', '&amp;')
@@ -1077,6 +1159,16 @@
     mobileAddPageBtn.addEventListener('click', addPage);
     deletePageBtn.addEventListener('click', deletePage);
     mobileDeletePageBtn.addEventListener('click', deletePage);
+    document.querySelectorAll('[data-project-action="save"]').forEach((button) => {
+      button.addEventListener('click', saveProjectFile);
+    });
+    document.querySelectorAll('[data-project-action="load"]').forEach((button) => {
+      button.addEventListener('click', () => document.getElementById('projectFileInput').click());
+    });
+    document.getElementById('projectFileInput').addEventListener('change', (event) => {
+      loadProjectFile(event.target.files[0]);
+      event.target.value = '';
+    });
     window.addEventListener('resize', updatePreviewScale);
     document.getElementById('clearBtn').addEventListener('click', () => {
       const confirmed = window.confirm('입력한 모든 내용을 비울까요?');
